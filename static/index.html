@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MNIST AI - Nhận Diện Chữ Số Viết Tay (CNN)</title>
+    <meta name="description" content="Ứng dụng nhận diện chữ số viết tay MNIST thời gian thực bằng mô hình Convolutional Neural Network (CNN) triển khai từ mnist.ipynb.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="brand">
+                <div class="brand-icon">
+                    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="2" width="20" height="20" rx="4"></rect>
+                        <path d="M7 16h10"></path>
+                        <path d="M12 8v8"></path>
+                        <circle cx="12" cy="8" r="2"></circle>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="brand-title">MNIST Neural Vision</h1>
+                    <p class="brand-subtitle">Nhận Diện Chữ Số Viết Tay • CNN Deep Learning</p>
+                </div>
+            </div>
+
+            <div class="header-badges">
+                <div class="status-chip online">
+                    <span class="status-dot"></span>
+                    <span id="modelStatusText">PyTorch CNN • 98.92% Acc</span>
+                </div>
+                <a href="#notebook-details" class="chip-link">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                    mnist.ipynb
+                </a>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="main-grid">
+            <!-- Left: Interactive Canvas Card -->
+            <section class="card canvas-card">
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <span class="step-num">01</span>
+                        <h2 class="card-title">Bảng Vẽ Tương Tác</h2>
+                    </div>
+                    <div class="auto-predict-toggle">
+                        <label class="switch" title="Tự động nhận diện ngay khi thả chuột">
+                            <input type="checkbox" id="autoPredictCheck" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span class="toggle-label">Auto-predict</span>
+                    </div>
+                </div>
+
+                <!-- Canvas Wrapper -->
+                <div class="canvas-wrapper">
+                    <canvas id="digitCanvas" width="280" height="280"></canvas>
+                    <div id="canvasHint" class="canvas-hint">
+                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                            <path d="M2 2l7.586 7.586"></path>
+                        </svg>
+                        <span>Vẽ số từ 0 - 9 vào đây</span>
+                    </div>
+                </div>
+
+                <!-- Canvas Controls -->
+                <div class="canvas-controls">
+                    <!-- Brush Tools -->
+                    <div class="tool-group">
+                        <button type="button" class="tool-btn active" id="penToolBtn" title="Bút vẽ (P)">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                            </svg>
+                            Bút
+                        </button>
+                        <button type="button" class="tool-btn" id="eraserToolBtn" title="Tẩy (E)">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"></path>
+                                <path d="M22 21H7"></path>
+                                <path d="m5 11 9 9"></path>
+                            </svg>
+                            Tẩy
+                        </button>
+                    </div>
+
+                    <!-- Size Slider -->
+                    <div class="slider-control">
+                        <label for="brushSize" class="control-label">Nét: <span id="brushSizeVal">18</span>px</label>
+                        <input type="range" id="brushSize" min="8" max="32" value="18" class="range-slider">
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="action-group">
+                        <button type="button" class="btn btn-outline" id="undoBtn" title="Hoàn tác nét vẽ (Ctrl+Z)">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 14 4 9l5-5"></path>
+                                <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"></path>
+                            </svg>
+                            Undo
+                        </button>
+                        <button type="button" class="btn btn-outline btn-danger" id="clearBtn" title="Xóa toàn bộ bảng vẽ (C)">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18"></path>
+                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                            </svg>
+                            Xóa
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Primary Predict Button -->
+                <button type="button" class="btn btn-primary" id="predictBtn">
+                    <span class="btn-shine"></span>
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    Dự Đoán Kết Quả
+                    <span class="key-shortcut">P</span>
+                </button>
+
+                <!-- Quick Samples Drawer -->
+                <div class="samples-drawer">
+                    <div class="samples-header">
+                        <span class="samples-title">Mẫu Thật Từ MNIST Test Set (Click để vẽ ngay):</span>
+                        <span class="samples-badge">20 Mẫu</span>
+                    </div>
+                    <div class="samples-grid" id="samplesContainer">
+                        <div class="samples-loading">Đang tải tập mẫu MNIST...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right: Prediction Results Card -->
+            <section class="card results-card">
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <span class="step-num">02</span>
+                        <h2 class="card-title">Kết Quả Nhận Diện</h2>
+                    </div>
+                    <div class="latency-badge" id="latencyBadge" title="Thời gian xử lý mô hình CNN">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                        <span id="latencyVal">0.0 ms</span>
+                    </div>
+                </div>
+
+                <!-- Hero Prediction Display -->
+                <div class="prediction-hero" id="predictionHero">
+                    <div class="hero-digit-wrapper">
+                        <div class="digit-halo"></div>
+                        <div class="hero-digit" id="predictedDigitDisplay">?</div>
+                    </div>
+                    <div class="hero-meta">
+                        <div class="meta-label">Chữ số dự đoán</div>
+                        <div class="confidence-pill" id="confidencePill">
+                            <span class="conf-dot"></span>
+                            <span id="confidenceVal">Chờ nét vẽ...</span>
+                        </div>
+                    </div>
+
+                    <!-- Preprocessed Image Visualizer -->
+                    <div class="cnn-vision-box" title="Ảnh 28x28 sau khi căn giữa theo trọng tâm (Center of Mass) đúng chuẩn MNIST">
+                        <div class="vision-title">CNN Input (28×28)</div>
+                        <div class="vision-img-frame">
+                            <img id="processedImgPreview" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Crect width='56' height='56' fill='%2311131b'/%3E%3C/svg%3E" alt="CNN Preprocessed 28x28">
+                        </div>
+                        <div class="vision-sub">Chuẩn hóa MNIST</div>
+                    </div>
+                </div>
+
+                <!-- Probability Distribution Chart -->
+                <div class="prob-section">
+                    <div class="section-title-row">
+                        <h3 class="section-title">Phân Bố Xác Suất 10 Lớp (0 - 9)</h3>
+                        <span class="section-desc">Softmax Distribution</span>
+                    </div>
+
+                    <div class="prob-bars" id="probBarsList">
+                        <!-- 10 Class Bars Generated Dynamically -->
+                    </div>
+                </div>
+
+                <!-- Top Candidates -->
+                <div class="top-candidates-section">
+                    <div class="candidates-title">Top Khả Năng Cao Nhất:</div>
+                    <div class="candidates-pills" id="topCandidatesList">
+                        <span class="candidate-placeholder">Chưa có kết quả dự đoán</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Notebook Architecture & Insights -->
+        <section class="card notebook-section" id="notebook-details">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <span class="step-num">03</span>
+                    <h2 class="card-title">Kiến Trúc Mô Hình & Đối Chiếu Với mnist.ipynb</h2>
+                </div>
+            </div>
+
+            <!-- Comparison Table -->
+            <div class="table-responsive">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Phương Pháp / Framework</th>
+                            <th>Cấu Trúc / Tham Số</th>
+                            <th>Số Epoch</th>
+                            <th>Độ Chính Xác (Test Acc)</th>
+                            <th>Trạng Thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <strong>CNN from Scratch</strong>
+                                <span class="tag-sub">NumPy thuần</span>
+                            </td>
+                            <td>SimpleCNNNumpy (8 filters 3×3, MaxPool 2×2, lr=0.03)</td>
+                            <td>4 Epochs</td>
+                            <td><span class="badge badge-warning">84.50%</span></td>
+                            <td><span class="badge badge-muted">Thực nghiệm</span></td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <strong>CNN Keras / TensorFlow</strong>
+                                <span class="tag-sub">TensorFlow 2.21.0</span>
+                            </td>
+                            <td>Conv2D(32) → MaxPool → Conv2D(64) → Dense(64) → Softmax</td>
+                            <td>5 Epochs</td>
+                            <td><span class="badge badge-success">98.92%</span></td>
+                            <td><span class="badge badge-muted">Huấn luyện</span></td>
+                        </tr>
+                        <tr class="highlight-row">
+                            <td>
+                                <strong>CNN PyTorch (CNNTorch)</strong>
+                                <span class="tag-sub">PyTorch 2.14</span>
+                            </td>
+                            <td>Conv2d(16) → ReLU → MaxPool → Conv2d(32) → Linear(64) → Linear(10)</td>
+                            <td>5 Epochs</td>
+                            <td><span class="badge badge-glow">98.92%</span></td>
+                            <td><span class="badge badge-active">⚡ Đang triển khai</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Architecture Flow Visualization -->
+            <div class="pipeline-flow">
+                <div class="pipeline-step">
+                    <div class="pipeline-icon">✏️</div>
+                    <div class="pipeline-name">Nét vẽ tự do</div>
+                    <div class="pipeline-spec">Canvas 280×280</div>
+                </div>
+                <div class="pipeline-arrow">➔</div>
+                <div class="pipeline-step">
+                    <div class="pipeline-icon">📐</div>
+                    <div class="pipeline-name">Cắt Bounding Box</div>
+                    <div class="pipeline-spec">Tỉ lệ giữ nguyên</div>
+                </div>
+                <div class="pipeline-arrow">➔</div>
+                <div class="pipeline-step">
+                    <div class="pipeline-icon">🎯</div>
+                    <div class="pipeline-name">Trọng tâm khối (CoM)</div>
+                    <div class="pipeline-spec">Center of Mass → (13.5, 13.5)</div>
+                </div>
+                <div class="pipeline-arrow">➔</div>
+                <div class="pipeline-step">
+                    <div class="pipeline-icon">🧠</div>
+                    <div class="pipeline-name">CNN Feature Extraction</div>
+                    <div class="pipeline-spec">Conv 16 + Conv 32</div>
+                </div>
+                <div class="pipeline-arrow">➔</div>
+                <div class="pipeline-step">
+                    <div class="pipeline-icon">📊</div>
+                    <div class="pipeline-name">Phân Loại Softmax</div>
+                    <div class="pipeline-spec">10 Lớp xác suất (0 - 9)</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>Xây dựng và triển khai từ bài tập <code>mnist.ipynb</code> • Sử dụng PyTorch CNN, FastAPI & Canvas Engine</p>
+        </footer>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
